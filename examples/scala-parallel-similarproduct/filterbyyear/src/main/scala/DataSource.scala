@@ -1,15 +1,30 @@
 package com.test
 
+import io.prediction.core.CleanedDataSource
+import io.prediction.core.EventWindow
+
+import io.prediction.controller.PDataSource
+import io.prediction.controller.EmptyEvaluationInfo
+import io.prediction.controller.EmptyActualResult
+import io.prediction.controller.Params
+import io.prediction.data.storage.Event
+import io.prediction.data.storage.Storage
+
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkContext._
+import org.apache.spark.rdd.RDD
+
+import grizzled.slf4j.Logger
+
 case class DataSourceParams(appName: String, eventWindow: Option[EventWindow]) extends Params
 
 class DataSource(val dsp: DataSourceParams)
   extends PDataSource[TrainingData,
-    EmptyEvaluationInfo, Query, EmptyActualResult] with CleanedDataSource {
+      EmptyEvaluationInfo, Query, EmptyActualResult] with CleanedDataSource {
 
   @transient lazy val logger = Logger[this.type]
 
   override def appName = dsp.appName
-
   override def eventWindow = dsp.eventWindow
 
   override
