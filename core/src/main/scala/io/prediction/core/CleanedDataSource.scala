@@ -28,14 +28,6 @@ trait CleanedDataSource {
   def appName: String
 
   /** :: DeveloperApi ::
-    * Current spark context that will be used to handle pEvents.
-    *
-    * @return Spark Context
-    */
-  @DeveloperApi
-  def sc: Option[SparkContext] = None
-
-  /** :: DeveloperApi ::
     * Param list that used for cleanup.
     *
     * @return current event windows that will be used to clean up events.
@@ -52,10 +44,8 @@ trait CleanedDataSource {
     * @return RDD[Event] most recent PEvents.
     */
   @DeveloperApi
-  def getCleanedPEvents(): RDD[Event] = {
-    assert(sc.nonEmpty, "spark context should be defined to work with PEvents")
-
-    val pEvents = PEventStore.find(appName)(sc.get)
+  def getCleanedPEvents(sc: SparkContext): RDD[Event] = {
+    val pEvents = PEventStore.find(appName)(sc)
 
     eventWindow
       .flatMap(_.duration)
@@ -101,9 +91,9 @@ trait CleanedDataSource {
     * @return RDD[Event] most recent PEvents
     */
   @DeveloperApi
-  def cleanedPEvents: RDD[Event] = {
+  def cleanedPEvents(sc: SparkContext): RDD[Event] = {
     cleanPEvents()
-    getCleanedPEvents()
+    getCleanedPEvents(sc)
   }
 
   /** :: DeveloperApi ::
