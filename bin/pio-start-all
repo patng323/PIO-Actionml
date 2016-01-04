@@ -60,7 +60,9 @@ fi
 #PGSQL
 pgsqlStatus="$(ps auxwww | grep postgres | wc -l)"
 if [ "$pgsqlStatus" -ge 5 ]; then
-  echo -e "\033[0;31mpostgresql service stopped. Please start it with 'sudo service postgresql start'.\033[0m"
+  echo -e "\033[0;31mpostgresql service stopped. Please start. Aborting...\033[0m"
+  ${PIO_HOME}/bin/pio-stop-all
+  exit 1
 fi
 
 # PredictionIO Event Server
