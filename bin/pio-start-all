@@ -57,6 +57,14 @@ else
   exit 1
 fi
 
+#PGSQL
+pgsqlStatus="$(ps auxwww | grep postgres | wc -l)"
+if [ "$pgsqlStatus" < 5 ]; then
+  echo -e "\033[0;31mpostgresql service stopped. Please start. Aborting...\033[0m"
+  ${PIO_HOME}/bin/pio-stop-all
+  exit 1
+fi
+
 # PredictionIO Event Server
 echo "Waiting 10 seconds for HBase to fully initialize..."
 sleep 10
