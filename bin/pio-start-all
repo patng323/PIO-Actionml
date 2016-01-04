@@ -57,6 +57,12 @@ else
   exit 1
 fi
 
+#PGSQL
+pgsqlStatus="$(ps auxwww | grep postgres | wc -l)"
+if [ "$pgsqlStatus" -ge 5 ]; then
+  echo -e "\033[0;31mpostgresql service stopped. Please start it with 'sudo service postgresql start'.\033[0m"
+fi
+
 # PredictionIO Event Server
 echo "Waiting 10 seconds for HBase to fully initialize..."
 sleep 10
