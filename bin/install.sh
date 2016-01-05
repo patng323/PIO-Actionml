@@ -145,7 +145,7 @@ else
     read -e -p "Vendor path ($pio_dir/vendors): " vendors_dir
     vendors_dir=${vendors_dir:-$pio_dir/vendors}
 
-    echo -e "\033[1mPlease choose between the following sources (1, 2, 3 or 3):\033[0m"
+    echo -e "\033[1mPlease choose between the following sources (1, 2, 3 or 4):\033[0m"
     select source_setup in "$PGSQL" "$MYSQL" "$ES_PGSQL" "$ES_HB"; do
       case ${source_setup} in
         "$PGSQL")
@@ -407,7 +407,7 @@ case $source_setup in
     ${SED_CMD} "s|# PIO_STORAGE_SOURCES_ELASTICSEARCH_TYPE=elasticsearch|PIO_STORAGE_SOURCES_ELASTICSEARCH_TYPE=elasticsearch|" ${pio_dir}/conf/pio-env.sh
     ${SED_CMD} "s|# PIO_STORAGE_SOURCES_ELASTICSEARCH_HOSTS=localhost|PIO_STORAGE_SOURCES_ELASTICSEARCH_HOSTS=localhost|" ${pio_dir}/conf/pio-env.sh
     ${SED_CMD} "s|# PIO_STORAGE_SOURCES_ELASTICSEARCH_PORTS=9300|PIO_STORAGE_SOURCES_ELASTICSEARCH_PORTS=9300|" ${pio_dir}/conf/pio-env.sh
-    ${SED_CMD} "s|# PIO_STORAGE_SOURCES_ELASTICSEARCH_HOME=$PIO_HOME/vendors/elasticsearch-1.4.4|PIO_STORAGE_SOURCES_ELASTICSEARCH_HOME=$PIO_HOME/vendors/elasticsearch-1.7.3|" ${pio_dir}/conf/pio-env.sh
+    ${SED_CMD} "s|# PIO_STORAGE_SOURCES_ELASTICSEARCH_HOME=.*|PIO_STORAGE_SOURCES_ELASTICSEARCH_HOME=$elasticsearch_dir|" ${pio_dir}/conf/pio-env.sh
 
     echo -e "\033[1;32mElasticsearch setup done!\033[0m"
     ;;
