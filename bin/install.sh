@@ -433,7 +433,7 @@ case $source_setup in
     fi
     if [[ ! -e hbase-${HBASE_VERSION}-bin.tar.gz ]]; then
       echo "Downloading HBase..."
-      curl -O http://archive.apache.org/dist/hbase/hbase-${HBASE_VERSION}/hbase-${HBASE_VERSION}-bin.tar.gz
+      curl -O http://archive.apache.org/dist/hbase/${HBASE_VERSION}/hbase-${HBASE_VERSION}-bin.tar.gz
     fi
     tar zxf hbase-${HBASE_VERSION}-bin.tar.gz
     rm -rf ${hbase_dir}
