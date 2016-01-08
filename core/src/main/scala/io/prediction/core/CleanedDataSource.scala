@@ -94,9 +94,13 @@ trait CleanedDataSource {
       } ++ events.filter(!isSetEvent(_))
   }
 
-  def removePDuplicates(): Unit = {}
+  def removePDuplicates(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
+    rdd.distinct()
+  }
 
-  def removeLDuplicates(): Unit = {}
+  def removeLDuplicates(ls: Iterable[Event]): Iterable[Event] = {
+    ls.toList.distinct
+  }
 
   /** :: DeveloperApi ::
     *
