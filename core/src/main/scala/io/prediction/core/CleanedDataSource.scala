@@ -2,7 +2,7 @@ package io.prediction.core
 
 import grizzled.slf4j.Logger
 import io.prediction.annotation.DeveloperApi
-import io.prediction.data.storage.Event
+import io.prediction.data.storage.{DataMap, Event}
 import io.prediction.data.store.{LEventStore, PEventStore}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -76,7 +76,34 @@ trait CleanedDataSource {
       }.getOrElse(lEvents)
   }
 
-  def compressPProperties(): Unit = {}
+  def compressPProperties(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
+    rdd.filter(e => e.event == "set" || e.event == "unset")
+      .groupBy(_.entityType)
+      .map { pair =>
+        val (_, ls) = pair
+        ls.find(_.event == "set") match {
+
+          case Some(first) =>
+            ls.reduce { (e1, e2) =>
+              val props = e2.event match {
+                case "set" =>
+                  e1.properties.fields ++ e2.properties.fields
+                case "unset" =>
+                  e1.properties.fields
+                    .filterKeys(f => !e2.properties.fields.contains(f))
+              }
+              e1.copy(properties = DataMap(props))
+            }
+
+          case None =>
+            ls.reduce { (e1, e2) =>
+              e1.copy(properties =
+                DataMap(e1.properties.fields ++ e2.properties.fields)
+              )
+            }
+        }
+      }
+  }
 
   def compressLProperties(): Unit = {}
 
@@ -92,8 +119,8 @@ trait CleanedDataSource {
     */
   @DeveloperApi
   def cleanedPEvents(sc: SparkContext): RDD[Event] = {
-    cleanPEvents()
-    getCleanedPEvents(sc)
+    val stage1 = getCleanedPEvents(sc)
+    cleanPEvents(sc, stage1)
   }
 
   /** :: DeveloperApi ::
@@ -101,37 +128,41 @@ trait CleanedDataSource {
     * Filters most recent, compress properties of PEvents
     */
   @DeveloperApi
-  def cleanPEvents(): Unit = {
-    eventWindow.map { ew =>
-      if (ew.compressProperties) compressPProperties()
-      if (ew.removeDuplicates) removePDuplicates()
+  def cleanPEvents(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
+    eventWindow match {
+      case Some(ew) =>
+        var updated =
+          if (ew.compressProperties) compressPProperties(sc, rdd) else rdd
+        //if (ew.removeDuplicates) removePDuplicates(updated)
+        updated
+      case None =>
+        rdd
+    }
+
+    /** :: DeveloperApi ::
+      *
+      * Filters most recent, compress properties and removes duplicates of LEvents
+      *
+      * @return Iterator[Event] most recent LEvents
+      */
+    @DeveloperApi
+    def cleanedLEvents: Iterator[Event] = {
+      cleanLEvents()
+      getCleanedLEvents()
+    }
+
+    /** :: DeveloperApi ::
+      *
+      * Filters most recent, compress properties of LEvents
+      */
+    @DeveloperApi
+    def cleanLEvents(): Unit = {
+      eventWindow.map { ew =>
+        if (ew.compressProperties) compressLProperties()
+        if (ew.removeDuplicates) removeLDuplicates()
+      }
     }
   }
-
-  /** :: DeveloperApi ::
-    *
-    * Filters most recent, compress properties and removes duplicates of LEvents
-    *
-    * @return Iterator[Event] most recent LEvents
-    */
-  @DeveloperApi
-  def cleanedLEvents: Iterator[Event] = {
-    cleanLEvents()
-    getCleanedLEvents()
-  }
-
-  /** :: DeveloperApi ::
-    *
-    * Filters most recent, compress properties of LEvents
-    */
-  @DeveloperApi
-  def cleanLEvents(): Unit = {
-    eventWindow.map { ew =>
-      if (ew.compressProperties) compressLProperties()
-      if (ew.removeDuplicates) removeLDuplicates()
-    }
-  }
-}
 
 case class EventWindow(
   duration: Option[Int] = None,
