@@ -8,6 +8,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 
+import scala.concurrent.duration.Duration
+
 /** :: DeveloperApi ::
   * Base class of cleaned data source.
   *
@@ -50,8 +52,9 @@ trait CleanedDataSource {
     eventWindow
       .flatMap(_.duration)
       .map { duration =>
+        val fd = Duration(duration)
         pEvents.filter(e =>
-          e.eventTime.isAfter(DateTime.now().minusMillis(duration))
+          e.eventTime.isAfter(DateTime.now().minus(fd.toMillis))
         )
       }.getOrElse(pEvents)
   }
@@ -70,8 +73,9 @@ trait CleanedDataSource {
     eventWindow
       .flatMap(_.duration)
       .map { duration =>
+        val fd = Duration(duration)
         lEvents.filter(e =>
-          e.eventTime.isAfter(DateTime.now().minusMillis(duration))
+          e.eventTime.isAfter(DateTime.now().minus(fd.toMillis))
         )
       }.getOrElse(lEvents)
   }
@@ -190,7 +194,7 @@ trait CleanedDataSource {
 }
 
 case class EventWindow(
-  duration: Option[Int] = None,
+  duration: Option[String] = None,
   removeDuplicates: Boolean = false,
   compressProperties: Boolean = false
 )
