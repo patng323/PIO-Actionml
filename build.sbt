@@ -185,3 +185,7 @@ pomExtra in ThisBuild := {
     </developer>
   </developers>
 }
+
+concurrentRestrictions in Global := Seq(
+  Tags.limit(Tags.Test, 1)
+)
