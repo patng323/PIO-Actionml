@@ -115,21 +115,9 @@ class HBPEvents(client: HBClient, config: StorageClientConfig, namespace: String
   )(sc: SparkContext): Unit = {
 
     val tableName = TableName.valueOf(HBEventsUtil.tableName(namespace, appId, channelId))
-    try {
-        checkTableExists(appId, channelId)
-        info(s"Removing table ${tableName.getNameAsString()}...")
-        client.admin.disableTable(tableName)
-        client.admin.deleteTable(tableName)
-    } catch {
-      case e: Exception => {
-        error(s"Fail to remove table for appId ${appId}. Exception: ${e}")
-        false
-      }
-    }
-
     val td = client.admin.getTableDescriptor(tableName.getNameAsString().toCharArray.map(_.toByte))
-    client.admin.disableTable(tableName)
-    client.admin.deleteTable(tableName)
+    client.admin.disableTable(tableName.getNameAsString)
+    client.admin.deleteTable(tableName.getNameAsString)
     client.admin.createTable(td)
 
     val conf = HBaseConfiguration.create()
