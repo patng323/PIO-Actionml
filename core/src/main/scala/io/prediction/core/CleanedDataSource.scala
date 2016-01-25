@@ -3,7 +3,7 @@ package io.prediction.core
 import grizzled.slf4j.Logger
 import io.prediction.annotation.DeveloperApi
 import io.prediction.data.storage.{DataMap, Event}
-import io.prediction.data.store.{LEventStore, PEventStore}
+import io.prediction.data.store.{Common, LEventStore, PEventStore}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
@@ -66,7 +66,7 @@ trait CleanedDataSource {
     * @return Iterator[Event] most recent LEvents.
     */
   @DeveloperApi
-  def getCleanedLEvents(): Iterator[Event] = {
+  def getCleanedLEvents(): Iterable[Event] = {
 
     val lEvents = LEventStore.find(appName)
 
@@ -77,7 +77,7 @@ trait CleanedDataSource {
         lEvents.filter(e =>
           e.eventTime.isAfter(DateTime.now().minus(fd.toMillis))
         )
-      }.getOrElse(lEvents)
+      }.getOrElse(lEvents).toIterable
   }
 
   def compressPProperties(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
@@ -89,7 +89,7 @@ trait CleanedDataSource {
       } ++ rdd.filter(!isSetEvent(_))
   }
 
-  def compressLProperties(events: Iterator[Event]): Iterable[Event] = {
+  def compressLProperties(events: Iterable[Event]): Iterable[Event] = {
     events.filter(isSetEvent).toIterable
       .groupBy(_.entityType)
       .map { pair =>
@@ -115,7 +115,10 @@ trait CleanedDataSource {
   @DeveloperApi
   def cleanedPEvents(sc: SparkContext): RDD[Event] = {
     val stage1 = getCleanedPEvents(sc)
-    cleanPEvents(sc, stage1)
+    val result = cleanPEvents(sc, stage1)
+    val (appId, channelId) = Common.appNameToId(appName, None)
+    PEventStore.wipe(result, appId, channelId)
+    result
   }
 
   /** :: DeveloperApi ::
@@ -144,7 +147,10 @@ trait CleanedDataSource {
   @DeveloperApi
   def cleanedLEvents: Iterable[Event] = {
     val stage1 = getCleanedLEvents()
-    cleanLEvents(stage1)
+    val result = cleanLEvents(stage1)
+    val (appId, channelId) = Common.appNameToId(appName, None)
+    LEventStore.wipe(result, appId, channelId)
+    result
   }
 
   /** :: DeveloperApi ::
@@ -152,15 +158,15 @@ trait CleanedDataSource {
     * Filters most recent, compress properties of LEvents
     */
   @DeveloperApi
-  def cleanLEvents(ls: Iterator[Event]): Iterable[Event] = {
+  def cleanLEvents(ls: Iterable[Event]): Iterable[Event] = {
     eventWindow match {
       case Some(ew) =>
         var updated =
-          if (ew.compressProperties) compressLProperties(ls) else ls.toIterable
+          if (ew.compressProperties) compressLProperties(ls) else ls
         //if (ew.removeDuplicates) removePDuplicates(updated)
         updated
       case None =>
-        ls.toIterable
+        ls
     }
   }
 
