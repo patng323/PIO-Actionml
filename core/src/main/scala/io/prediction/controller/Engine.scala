@@ -251,6 +251,7 @@ class Engine[TD, EI, PD, Q, P, A](
               logger.info(
                 s"Loaded model ${m.getClass.getName} for algorithm " +
                 s"${algo.getClass.getName}")
+              sc.stop
               m
             } catch {
               case e: NullPointerException =>
