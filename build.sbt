@@ -193,3 +193,8 @@ concurrentRestrictions in Global := Seq(
   Tags.limitAll( 1 )
 )
 
+parallelExecution := false
+
+parallelExecution in Global := false
+
+testOptions in Test += Tests.Argument("-oDF")
