@@ -44,8 +44,8 @@ object PEventStore {
     events: RDD[Event],
     appId: Int,
     channelId: Option[Int]
-  )(implicit ec: ExecutionContext): Unit = {
-    eventsDb.wipe(events, appId, channelId)
+  )(sc: SparkContext): Unit = {
+    eventsDb.wipe(events, appId, channelId)(sc)
   }
 
   /** Read events from Event Store

@@ -117,7 +117,7 @@ trait CleanedDataSource {
     val stage1 = getCleanedPEvents(sc)
     val result = cleanPEvents(sc, stage1)
     val (appId, channelId) = Common.appNameToId(appName, None)
-    PEventStore.wipe(result, appId, channelId)
+    PEventStore.wipe(result, appId, channelId)(sc)
     result
   }
 

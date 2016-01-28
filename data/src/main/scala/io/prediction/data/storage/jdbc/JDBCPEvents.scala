@@ -131,7 +131,7 @@ class JDBCPEvents(client: String, config: StorageClientConfig, namespace: String
 
     val tableName = JDBCUtils.eventTableName(namespace, appId, channelId)
     sqlContext.sql(s"drop table if exists $tableName")
-    write(events, appId, channelId)
+    write(events, appId, channelId)(sc)
   }
 
   def write(events: RDD[Event], appId: Int, channelId: Option[Int])(sc: SparkContext): Unit = {
