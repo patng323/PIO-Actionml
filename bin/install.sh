@@ -10,9 +10,9 @@
 
 OS=`uname`
 PIO_VERSION=0.9.6
-SPARK_VERSION=1.6.0
+SPARK_VERSION=1.6.1
 # Looks like support for Elasticsearch 2.0 will require 2.0 so deferring
-ELASTICSEARCH_VERSION=1.7.4
+ELASTICSEARCH_VERSION=1.7.5
 HBASE_VERSION=1.1.3
 POSTGRES_VERSION=9.4-1204.jdbc41
 MYSQL_VERSION=5.1.37
@@ -323,7 +323,7 @@ if [[ -e spark-${SPARK_VERSION}-bin-hadoop2.6.tgz ]]; then
 fi
 if [[ ! -e spark-${SPARK_VERSION}-bin-hadoop2.6.tgz ]]; then
   echo "Downloading Spark..."
-  curl -O http://d3kbcqa49mib13.cloudfront.net/spark-${SPARK_VERSION}-bin-hadoop2.6.tgz
+  curl -O http://apache.arvixe.com/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop2.6.tgz
 fi
 tar xf spark-${SPARK_VERSION}-bin-hadoop2.6.tgz
 rm -rf ${spark_dir}
