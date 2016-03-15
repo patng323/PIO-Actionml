@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import sbtassembly.AssemblyPlugin.autoImport._
 
 name := "tools"
@@ -23,8 +21,8 @@ libraryDependencies ++= Seq(
   "io.spray"               %% "spray-can"      % "1.3.3",
   "io.spray"               %% "spray-routing"  % "1.3.3",
   "me.lessis"              % "semverfi_2.10"  % "0.1.3",
-  "org.apache.hadoop"       % "hadoop-common"  % "2.6.4",
-  "org.apache.hadoop"       % "hadoop-hdfs"    % "2.6.4",
+  "org.apache.hadoop"       % "hadoop-common"  % "2.6.2",
+  "org.apache.hadoop"       % "hadoop-hdfs"    % "2.6.2",
   "org.apache.spark"       %% "spark-core"     % sparkVersion.value % "provided",
   "org.apache.spark"       %% "spark-sql"      % sparkVersion.value % "provided",
   "org.clapper"            %% "grizzled-slf4j" % "1.0.2",
@@ -35,6 +33,9 @@ libraryDependencies ++= Seq(
   "io.spray" %% "spray-testkit" % "1.3.3" % "test",
   "org.specs2" %% "specs2" % "2.3.13" % "test",
   "org.spark-project.akka" %% "akka-slf4j"     % "2.3.4-spark")
+
+dependencyOverrides +=   "org.slf4j" % "slf4j-log4j12" % "1.7.18"
+
 
 excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
   cp filter { _.data.getName match {
