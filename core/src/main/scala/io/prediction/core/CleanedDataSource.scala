@@ -118,14 +118,10 @@ trait CleanedDataSource {
     * @return RDD[Event] most recent PEvents
     */
   @DeveloperApi
-  def cleanedPEvents(sc: SparkContext): RDD[Event] = {
-    val stage1 = getCleanedPEvents(sc)
-    val result = cleanPEvents(sc, stage1)
+  def cleanAndPersistPEvents(sc: SparkContext): Unit ={
+    val result = cleanPEvents(sc)
     val originalEvents = PEventStore.find(appName)(sc)
-    val (appId, channelId) = Common.appNameToId(appName, None)
-    wipe(result.collect.toSet, originalEvents.collect.toSet, appId, channelId)
-    //PEventStore.wipe(result, appId, channelId)(sc)
-    result
+    wipe(result.collect.toSet, originalEvents.collect.toSet)
   }
 
    /**
@@ -137,11 +133,9 @@ trait CleanedDataSource {
     */
   def wipe(
     cleanedEvents: Set[Event],
-    originalEvents: Set[Event],
-    appId: Int,
-    channelId: Option[Int]
-  ): Unit = {
-
+    originalEvents: Set[Event]
+  ): Unit = { 
+    val (appId, channelId) = Common.appNameToId(appName, None)
     val newEvents = cleanedEvents -- originalEvents
 
     val listOfFutureNewEvents: List[Future[String]] = newEvents.filter(x =>  x.eventId != "").toList.map { case event =>
@@ -172,7 +166,8 @@ trait CleanedDataSource {
     * Filters most recent, compress properties of PEvents
     */
   @DeveloperApi
-  def cleanPEvents(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
+  def cleanPEvents(sc: SparkContext): RDD[Event] = {
+    val rdd = getCleanedPEvents(sc)
     eventWindow match {
       case Some(ew) =>
         var updated =
@@ -192,16 +187,10 @@ trait CleanedDataSource {
     * @return Iterator[Event] most recent LEvents
     */
   @DeveloperApi
-  def cleanedLEvents: Iterable[Event] = {
-    val stage1 = getCleanedLEvents()
-    val result = cleanLEvents(stage1)
-    val originalEvents = LEventStore.find(appName)
-    val (appId, channelId) = Common.appNameToId(appName, None)
-   
-    wipe(result.toSet, originalEvents.toSet, appId, channelId) 
-
-    //LEventStore.wipe(result, appId, channelId)
-    result
+  def cleanAndPersistLEvents: Unit = {
+    val result = cleanLEvents()
+    val originalEvents = LEventStore.find(appName) 
+    wipe(result.toSet, originalEvents.toSet)  
   }
 
   /** :: DeveloperApi ::
@@ -209,7 +198,8 @@ trait CleanedDataSource {
     * Filters most recent, compress properties of LEvents
     */
   @DeveloperApi
-  def cleanLEvents(ls: Iterable[Event]): Iterable[Event] = {
+  def cleanLEvents(): Iterable[Event] = {
+    val ls = getCleanedLEvents()
     eventWindow match {
       case Some(ew) =>
         var updated =
