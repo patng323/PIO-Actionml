@@ -177,8 +177,9 @@ trait CleanedDataSource {
       case Some(ew) =>
         var updated =
           if (ew.compressProperties) compressPProperties(sc, rdd) else rdd
-        //if (ew.removeDuplicates) removePDuplicates(updated)
-        updated
+        
+        val deduped = if (ew.removeDuplicates) removePDuplicates(sc,updated) else updated
+        deduped
       case None =>
         rdd
     }
@@ -213,8 +214,8 @@ trait CleanedDataSource {
       case Some(ew) =>
         var updated =
           if (ew.compressProperties) compressLProperties(ls) else ls
-        //if (ew.removeDuplicates) removePDuplicates(updated)
-        updated
+          val deduped = if (ew.removeDuplicates) removeLDuplicates(updated) else updated
+        deduped
       case None =>
         ls
     }
