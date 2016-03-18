@@ -43,7 +43,7 @@ class SegmentIOAuthSpec extends Specification {
     override def futureDelete(eventId: String, appId: Int, channelId: Option[Int])
         (implicit ec: ExecutionContext): Future[Boolean] =
       Future successful true
-
+  
     override def close(): Unit = {}
   }
   val appId = 0

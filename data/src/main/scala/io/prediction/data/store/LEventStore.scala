@@ -33,14 +33,6 @@ object LEventStore {
 
   @transient lazy private val eventsDb = Storage.getLEvents()
 
-  def wipe(
-    events: Iterable[Event],
-    appId: Int,
-    channelId: Option[Int],
-    timeout: Duration = defaultTimeout): Unit = {
-    Await.result(eventsDb.wipe(events, appId, channelId), timeout)
-  }
-
   /** Reads events of the specified entity. May use this in Algorithm's predict()
     * or Serving logic to have fast event store access.
     *

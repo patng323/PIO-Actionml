@@ -108,26 +108,4 @@ class HBPEvents(client: HBClient, config: StorageClientConfig, namespace: String
     }.saveAsNewAPIHadoopDataset(conf)
 
   }
-
-  override
-  def wipe(
-    events: RDD[Event], appId: Int, channelId: Option[Int] = None
-  )(sc: SparkContext): Unit = {
-
-    val tableName = TableName.valueOf(HBEventsUtil.tableName(namespace, appId, channelId))
-    val td = client.admin.getTableDescriptor(tableName.getNameAsString().toCharArray.map(_.toByte))
-    client.admin.disableTable(tableName.getNameAsString)
-    client.admin.deleteTable(tableName.getNameAsString)
-    client.admin.createTable(td)
-
-    val conf = HBaseConfiguration.create()
-    conf.set(TableOutputFormat.OUTPUT_TABLE, tableName.getNameAsString())
-    conf.setClass("mapreduce.outputformat.class",
-      classOf[TableOutputFormat[Object]],
-      classOf[OutputFormat[Object, Writable]])
-    events.map { event =>
-      val (put, rowKey) = HBEventsUtil.eventToPut(event, appId)
-      (new ImmutableBytesWritable(rowKey.toBytes), put)
-    }.saveAsNewAPIHadoopDataset(conf)
-  }
 }
