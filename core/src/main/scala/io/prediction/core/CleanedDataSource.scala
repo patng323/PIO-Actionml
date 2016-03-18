@@ -118,10 +118,11 @@ trait CleanedDataSource {
     * @return RDD[Event] most recent PEvents
     */
   @DeveloperApi
-  def cleanAndPersistPEvents(sc: SparkContext): Unit ={
+  def cleanAndPersistPEvents(sc: SparkContext): RDD[Event] ={
     val result = cleanPEvents(sc)
     val originalEvents = PEventStore.find(appName)(sc)
     wipe(result.collect.toSet, originalEvents.collect.toSet)
+    result
   }
 
    /**
@@ -187,10 +188,11 @@ trait CleanedDataSource {
     * @return Iterator[Event] most recent LEvents
     */
   @DeveloperApi
-  def cleanAndPersistLEvents: Unit = {
+  def cleanAndPersistLEvents: Iterable[Event] = {
     val result = cleanLEvents()
     val originalEvents = LEventStore.find(appName) 
-    wipe(result.toSet, originalEvents.toSet)  
+    wipe(result.toSet, originalEvents.toSet)
+    result
   }
 
   /** :: DeveloperApi ::

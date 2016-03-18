@@ -29,8 +29,7 @@ class DataSource(val dsp: DataSourceParams)
 
   override
   def readTraining(sc: SparkContext): TrainingData = {
-    cleanAndPersistPEvents(sc)
-    val eventsDb = Storage.getPEvents()
+    val eventsDb = cleanAndPersistPEvents(sc) 
 
     // create a RDD of (entityID, User)
     val usersRDD: RDD[(String, User)] = eventsDb.aggregateProperties(
