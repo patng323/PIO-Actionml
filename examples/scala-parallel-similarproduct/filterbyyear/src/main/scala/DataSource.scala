@@ -16,20 +16,22 @@ import org.apache.spark.rdd.RDD
 
 import grizzled.slf4j.Logger
 
-case class DataSourceParams(appName: String, eventWindow: Option[EventWindow]) extends Params
+case class DataSourceParams(appName: String, eventWindow: Option[EventWindow], appId: Int) extends Params
 
 class DataSource(val dsp: DataSourceParams)
   extends PDataSource[TrainingData,
       EmptyEvaluationInfo, Query, EmptyActualResult] with CleanedDataSource {
 
-  @transient lazy val logger = Logger[this.type]
+  @transient override lazy val logger = Logger[this.type]
 
   override def appName = dsp.appName
   override def eventWindow = dsp.eventWindow
 
   override
   def readTraining(sc: SparkContext): TrainingData = {
-    val eventsDb = cleanAndPersistPEvents(sc) 
+    val events = cleanAndPersistPEvents(sc) 
+
+    val eventsDb = Storage.getPEvents()
 
     // create a RDD of (entityID, User)
     val usersRDD: RDD[(String, User)] = eventsDb.aggregateProperties(
