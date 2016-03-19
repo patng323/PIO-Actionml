@@ -114,7 +114,11 @@ trait CleanedDataSource {
   }
 
   def recreateEvent(x: Event, eventId: Option[String], creationTime: DateTime): Event = {
-    Event(eventId = eventId, event = x.event, entityType = x.entityType, entityId = x.entityId, targetEntityType = x.targetEntityType, targetEntityId = x.targetEntityId, properties = x.properties, eventTime = x.eventTime, tags = x.tags, prId= x.prId, creationTime = creationTime)  
+    Event(eventId = eventId, event = x.event, entityType = x.entityType, 
+          entityId = x.entityId, targetEntityType = x.targetEntityType, 
+          targetEntityId = x.targetEntityId, properties = x.properties, 
+          eventTime = x.eventTime, tags = x.tags, prId= x.prId, 
+          creationTime = creationTime)  
   }
 
 
