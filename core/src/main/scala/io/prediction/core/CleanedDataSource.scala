@@ -88,9 +88,12 @@ trait CleanedDataSource {
   def compressPProperties(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
     rdd.filter(isSetEvent)
       .groupBy(_.entityType)
-      .map { pair =>
+      .flatMap { pair =>
         val (_, ls) = pair
-        compress(ls)
+        ls.groupBy(_.entityId).map { anotherpair =>
+          val (_, anotherls) = anotherpair 
+          compress(anotherls)
+        }
       } ++ rdd.filter(!isSetEvent(_))
   }
 
@@ -104,11 +107,23 @@ trait CleanedDataSource {
   }
 
   def removePDuplicates(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
-    rdd.distinct()
+    rdd.map(x => 
+      (recreateEvent(x, None, x.eventTime), (x.eventId, x.creationTime)))
+      .groupByKey.map{case (x, y) => recreateEvent(x, y.head._1, y.head._2)}
+
   }
 
+  def recreateEvent(x: Event, eventId: Option[String], creationTime: DateTime): Event = {
+    Event(eventId = eventId, event = x.event, entityType = x.entityType, entityId = x.entityId, targetEntityType = x.targetEntityType, targetEntityId = x.targetEntityId, properties = x.properties, eventTime = x.eventTime, tags = x.tags, prId= x.prId, creationTime = creationTime)  
+  }
+
+
   def removeLDuplicates(ls: Iterable[Event]): Iterable[Event] = {
-    ls.toList.distinct
+    ls.toList.map(x => 
+      (recreateEvent(x, None, x.eventTime), (x.eventId, x.creationTime)))
+      .groupBy(_._1).mapValues( _.map( _._2 ) )
+      .map(x => recreateEvent(x._1, x._2.head._1, x._2.head._2))
+
   }
 
   /** :: DeveloperApi ::
@@ -118,7 +133,7 @@ trait CleanedDataSource {
     * @return RDD[Event] most recent PEvents
     */
   @DeveloperApi
-  def cleanAndPersistPEvents(sc: SparkContext): RDD[Event] ={
+  def cleanPersistedPEvents(sc: SparkContext): RDD[Event] ={
     val result = cleanPEvents(sc)
     val originalEvents = PEventStore.find(appName)(sc)
     wipe(result.collect.toSet, originalEvents.collect.toSet)
@@ -139,12 +154,13 @@ trait CleanedDataSource {
     val (appId, channelId) = Common.appNameToId(appName, None)
     val newEvents = cleanedEvents -- originalEvents
 
-    val listOfFutureNewEvents: List[Future[String]] = newEvents.filter(x =>  x.eventId != "").toList.map { case event =>
-        lEventsDb.futureInsert(event, appId)
-    }
+    val listOfFutureNewEvents: List[Future[String]] = newEvents.toList.map { case event =>
+        lEventsDb.futureInsert(recreateEvent(event, None, event.eventTime), appId)
+    } 
 
     val futureOfListNewEvents: Future[List[String]] = Future.sequence(listOfFutureNewEvents)
-    Await.result(futureOfListNewEvents, scala.concurrent.duration.Duration(5, "minutes"))
+    Await.result(futureOfListNewEvents, scala.concurrent.duration.Duration(5, "minutes")) 
+
 
     val eventsToRemove = (originalEvents -- cleanedEvents).map { case e =>
       e.eventId.getOrElse("")
@@ -188,7 +204,7 @@ trait CleanedDataSource {
     * @return Iterator[Event] most recent LEvents
     */
   @DeveloperApi
-  def cleanAndPersistLEvents: Iterable[Event] = {
+  def cleanPersistedLEvents: Iterable[Event] = {
     val result = cleanLEvents()
     val originalEvents = LEventStore.find(appName) 
     wipe(result.toSet, originalEvents.toSet)
@@ -213,19 +229,21 @@ trait CleanedDataSource {
     }
   }
 
+
   private def isSetEvent(e: Event): Boolean = {
-    e.event == "set" || e.event == "unset"
+    e.event == "$set" || e.event == "$unset"
   }
 
+  //TODO: fix bug, assumes temporal ordering ?
   private def compress(events: Iterable[Event]): Event = {
-    events.find(_.event == "set") match {
+    events.find(_.event == "$set") match {
 
       case Some(first) =>
         events.reduce { (e1, e2) =>
           val props = e2.event match {
-            case "set" =>
+            case "$set" =>
               e1.properties.fields ++ e2.properties.fields
-            case "unset" =>
+            case "$unset" =>
               e1.properties.fields
                 .filterKeys(f => !e2.properties.fields.contains(f))
           }
