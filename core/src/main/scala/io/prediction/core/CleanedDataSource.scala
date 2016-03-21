@@ -106,6 +106,7 @@ trait CleanedDataSource {
       } ++ events.filter(!isSetEvent(_))
   }
 
+  //TODO ensure most recent is preserved
   def removePDuplicates(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
     rdd.map(x => 
       (recreateEvent(x, None, x.eventTime), (x.eventId, x.creationTime)))
