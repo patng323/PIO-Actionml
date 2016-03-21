@@ -21,7 +21,7 @@ import scala.concurrent.duration.Duration
   *
   */
 @DeveloperApi
-trait CleanedDataSource {
+trait SelfCleaningDataSource {
 
   @transient lazy private val pEventsDb = Storage.getPEvents()
   @transient lazy private val lEventsDb = Storage.getLEvents()
@@ -118,7 +118,7 @@ trait CleanedDataSource {
     * @return RDD[Event] most recent PEvents
     */
   @DeveloperApi
-  def cleanAndPersistPEvents(sc: SparkContext): RDD[Event] ={
+  def cleanPersistedPEvents(sc: SparkContext): RDD[Event] ={
     val result = cleanPEvents(sc)
     val originalEvents = PEventStore.find(appName)(sc)
     wipe(result.collect.toSet, originalEvents.collect.toSet)
@@ -188,7 +188,7 @@ trait CleanedDataSource {
     * @return Iterator[Event] most recent LEvents
     */
   @DeveloperApi
-  def cleanAndPersistLEvents: Iterable[Event] = {
+  def cleanPersistedLEvents: Iterable[Event] = {
     val result = cleanLEvents()
     val originalEvents = LEventStore.find(appName) 
     wipe(result.toSet, originalEvents.toSet)
