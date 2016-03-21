@@ -141,9 +141,44 @@ trait CleanedDataSource {
   def cleanPersistedPEvents(sc: SparkContext): RDD[Event] ={
     val result = cleanPEvents(sc)
     val originalEvents = PEventStore.find(appName)(sc)
-    wipe(result.collect.toSet, originalEvents.collect.toSet)
+    val newEvents = result subtract originalEvents
+    val eventsToRemove = (originalEvents subtract result).map { case e =>
+      e.eventId.getOrElse("")
+    }
+    
+    wipePEvents(newEvents, eventsToRemove, sc)
     result
   }
+  
+   /**
+    * Replace events in Event Store
+    *
+    */
+  def wipePEvents(
+    newEvents: RDD[Event],
+    eventsToRemove: RDD[String],
+    sc: SparkContext
+  ): Unit = {
+    val (appId, channelId) = Common.appNameToId(appName, None)
+  
+    newEvents.foreach(println(_))
+
+    pEventsDb.write(newEvents, appId)(sc)
+
+    eventsToRemove.foreach(println(_))
+  
+    removeEvents(eventsToRemove.collect.toSet, appId)
+  }
+
+  def removeEvents(eventsToRemove: Set[String], appId: Int){
+    val listOfFuture: List[Future[Boolean]] = eventsToRemove.filter(x =>  x != "").toList.map { case eventId =>
+        lEventsDb.futureDelete(eventId, appId)
+    }
+
+    val futureOfList: Future[List[Boolean]] = Future.sequence(listOfFuture)
+    Await.result(futureOfList, scala.concurrent.duration.Duration(5, "minutes"))
+  }
+
 
    /**
     * Replace events in Event Store
@@ -153,12 +188,11 @@ trait CleanedDataSource {
     * @param channelId delete all events of channelId
     */
   def wipe(
-    cleanedEvents: Set[Event],
-    originalEvents: Set[Event]
+    newEvents: Set[Event],
+    eventsToRemove: Set[String]
   ): Unit = { 
     val (appId, channelId) = Common.appNameToId(appName, None)
-    val newEvents = cleanedEvents -- originalEvents
-
+   
     val listOfFutureNewEvents: List[Future[String]] = newEvents.toList.map { case event =>
         lEventsDb.futureInsert(recreateEvent(event, None, event.eventTime), appId)
     } 
@@ -166,20 +200,7 @@ trait CleanedDataSource {
     val futureOfListNewEvents: Future[List[String]] = Future.sequence(listOfFutureNewEvents)
     Await.result(futureOfListNewEvents, scala.concurrent.duration.Duration(5, "minutes")) 
 
-
-    val eventsToRemove = (originalEvents -- cleanedEvents).map { case e =>
-      e.eventId.getOrElse("")
-    }
-
-    val listOfFuture: List[Future[Boolean]] = eventsToRemove.filter(x =>  x != "").toList.map { case eventId =>
-        lEventsDb.futureDelete(eventId, appId)
-    }
-
-    val futureOfList: Future[List[Boolean]] = Future.sequence(listOfFuture)
-    Await.result(futureOfList, scala.concurrent.duration.Duration(5, "minutes"))
-
-
-    //eventsDb.wipe(events, appId, channelId)(sc)
+    removeEvents(eventsToRemove, appId)
   }
 
 
@@ -210,9 +231,14 @@ trait CleanedDataSource {
     */
   @DeveloperApi
   def cleanPersistedLEvents: Iterable[Event] = {
-    val result = cleanLEvents()
-    val originalEvents = LEventStore.find(appName) 
-    wipe(result.toSet, originalEvents.toSet)
+    val result = cleanLEvents().toSet
+    val originalEvents = LEventStore.find(appName).toSet
+    val newEvents = result -- originalEvents
+    val eventsToRemove = (originalEvents -- result).map { case e =>
+      e.eventId.getOrElse("")
+    }
+
+    wipe(newEvents, eventsToRemove)
     result
   }
 
