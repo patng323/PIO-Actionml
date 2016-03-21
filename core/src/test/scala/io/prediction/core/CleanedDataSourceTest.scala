@@ -1,4 +1,4 @@
-package com.test
+package io.prediction.core.test
 
 import io.prediction.core.CleanedDataSource
 import io.prediction.core.EventWindow
@@ -10,6 +10,7 @@ import io.prediction.controller.EmptyActualResult
 import io.prediction.controller.Params
 import io.prediction.data.storage.Event
 import io.prediction.data.storage.Storage
+import io.prediction.data.store._
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -24,7 +25,7 @@ case class DataSourceParams(appName: String, eventWindow: Option[EventWindow], a
 
 class CleanedPDataSource() extends PDataSource[TrainingData,EmptyEvaluationInfo, Query, EmptyActualResult] with CleanedDataSource {
 
-  val (appId, channelId) = Common.appNameToId("cleanedTest", None)
+  val (appId, channelId) = io.prediction.data.store.Common.appNameToId("cleanedTest", None)
 
 
   val dsp = DataSourceParams("cleanedTest", Some(EventWindow(Some("1825 days"), true, true)), appId = appId)
@@ -47,8 +48,7 @@ class CleanedDataSourceTest extends FunSuite with Inside with SharedSparkContext
   val source = new CleanedPDataSource()
 
   //To run manually, requires app "cleanedTest" and test.json data imported to it
-  @Ignore
-  test("Test event cleanup") {
+  ignore("Test event cleanup") {
     val eventsBeforeCount = source.events(sc).count
     val itemEventsBeforeCount = source.itemEvents(sc).count
 
