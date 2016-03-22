@@ -23,6 +23,11 @@ import scala.concurrent.duration.Duration
 @DeveloperApi
 trait SelfCleaningDataSource {
 
+  implicit object DateTimeOrdering extends Ordering[DateTime] {
+  def compare(d1: DateTime, d2: DateTime) = d1.compareTo(d2)
+  }
+
+
   @transient lazy private val pEventsDb = Storage.getPEvents()
   @transient lazy private val lEventsDb = Storage.getLEvents()
 
@@ -106,11 +111,12 @@ trait SelfCleaningDataSource {
       } ++ events.filter(!isSetEvent(_))
   }
 
-  //TODO ensure most recent is preserved
   def removePDuplicates(sc: SparkContext, rdd: RDD[Event]): RDD[Event] = {
+    val now = DateTime.now()
     rdd.map(x => 
-      (recreateEvent(x, None, x.eventTime), (x.eventId, x.creationTime)))
-      .groupByKey.map{case (x, y) => recreateEvent(x, y.head._1, y.head._2)}
+      (recreateEvent(x, None, now), (x.eventId, x.eventTime)))
+      .groupByKey
+      .map{case (x, y) => recreateEvent(x, y.head._1, y.head._2)}
 
   }
 
@@ -118,15 +124,15 @@ trait SelfCleaningDataSource {
     Event(eventId = eventId, event = x.event, entityType = x.entityType, 
           entityId = x.entityId, targetEntityType = x.targetEntityType, 
           targetEntityId = x.targetEntityId, properties = x.properties, 
-          eventTime = x.eventTime, tags = x.tags, prId= x.prId, 
+          eventTime = creationTime, tags = x.tags, prId= x.prId, 
           creationTime = creationTime)  
   }
 
-
   def removeLDuplicates(ls: Iterable[Event]): Iterable[Event] = {
+    val now = DateTime.now()
     ls.toList.map(x => 
-      (recreateEvent(x, None, x.eventTime), (x.eventId, x.creationTime)))
-      .groupBy(_._1).mapValues( _.map( _._2 ) )
+      (recreateEvent(x, None, now), (x.eventId, x.eventTime)))
+      .groupBy(_._1).mapValues( _.map( _._2 ) ) 
       .map(x => recreateEvent(x._1, x._2.head._1, x._2.head._2))
 
   }
@@ -154,6 +160,7 @@ trait SelfCleaningDataSource {
     * Replace events in Event Store
     *
     */
+
   def wipePEvents(
     newEvents: RDD[Event],
     eventsToRemove: RDD[String],
@@ -210,7 +217,7 @@ trait SelfCleaningDataSource {
     */
   @DeveloperApi
   def cleanPEvents(sc: SparkContext): RDD[Event] = {
-    val rdd = getCleanedPEvents(sc)
+    val rdd = getCleanedPEvents(sc).sortBy(_.eventTime)
     eventWindow match {
       case Some(ew) =>
         var updated =
@@ -249,7 +256,7 @@ trait SelfCleaningDataSource {
     */
   @DeveloperApi
   def cleanLEvents(): Iterable[Event] = {
-    val ls = getCleanedLEvents()
+    val ls = getCleanedLEvents().toList.sortBy(_.eventTime)
     eventWindow match {
       case Some(ew) =>
         var updated =
@@ -266,7 +273,6 @@ trait SelfCleaningDataSource {
     e.event == "$set" || e.event == "$unset"
   }
 
-  //TODO: fix bug, assumes temporal ordering ?
   private def compress(events: Iterable[Event]): Event = {
     events.find(_.event == "$set") match {
 
