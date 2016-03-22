@@ -1,6 +1,6 @@
 package com.test
 
-import io.prediction.core.CleanedDataSource
+import io.prediction.core.SelfCleaningDataSource
 import io.prediction.core.EventWindow
 
 import io.prediction.controller.PDataSource
@@ -20,7 +20,7 @@ case class DataSourceParams(appName: String, eventWindow: Option[EventWindow], a
 
 class DataSource(val dsp: DataSourceParams)
   extends PDataSource[TrainingData,
-      EmptyEvaluationInfo, Query, EmptyActualResult] with CleanedDataSource {
+      EmptyEvaluationInfo, Query, EmptyActualResult] with SelfCleaningDataSource {
 
   @transient override lazy val logger = Logger[this.type]
 
@@ -29,7 +29,7 @@ class DataSource(val dsp: DataSourceParams)
 
   override
   def readTraining(sc: SparkContext): TrainingData = {
-    val events = cleanAndPersistPEvents(sc) 
+    val events = cleanPersistedPEvents(sc) 
 
     val eventsDb = Storage.getPEvents()
 
