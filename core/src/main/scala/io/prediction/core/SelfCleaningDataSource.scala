@@ -24,7 +24,7 @@ import scala.concurrent.duration.Duration
 trait SelfCleaningDataSource {
 
   implicit object DateTimeOrdering extends Ordering[DateTime] {
-  def compare(d1: DateTime, d2: DateTime) = d1.compareTo(d2)
+  def compare(d1: DateTime, d2: DateTime) = d2.compareTo(d1)
   }
 
 
