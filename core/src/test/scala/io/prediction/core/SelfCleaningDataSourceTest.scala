@@ -1,6 +1,6 @@
 package io.prediction.core.test
 
-import io.prediction.core.CleanedDataSource
+import io.prediction.core.SelfCleaningDataSource
 import io.prediction.core.EventWindow
 import io.prediction.workflow.SharedSparkContext
 
@@ -23,7 +23,7 @@ import org.scalatest.Inside
 
 case class DataSourceParams(appName: String, eventWindow: Option[EventWindow], appId: Int) extends Params
 
-class CleanedPDataSource() extends PDataSource[TrainingData,EmptyEvaluationInfo, Query, EmptyActualResult] with CleanedDataSource {
+class SelfCleaningPDataSource() extends PDataSource[TrainingData,EmptyEvaluationInfo, Query, EmptyActualResult] with SelfCleaningDataSource {
 
   val (appId, channelId) = io.prediction.data.store.Common.appNameToId("cleanedTest", None)
 
@@ -43,9 +43,9 @@ class CleanedPDataSource() extends PDataSource[TrainingData,EmptyEvaluationInfo,
 
 }
 
-class CleanedDataSourceTest extends FunSuite with Inside with SharedSparkContext {
+class SelfCleaningDataSourceTest extends FunSuite with Inside with SharedSparkContext {
 
-  val source = new CleanedPDataSource()
+  val source = new SelfCleaningPDataSource()
 
   //To run manually, requires app "cleanedTest" and test.json data imported to it
   ignore("Test event cleanup") {

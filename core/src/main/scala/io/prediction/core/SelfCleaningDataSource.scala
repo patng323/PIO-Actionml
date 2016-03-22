@@ -21,7 +21,7 @@ import scala.concurrent.duration.Duration
   *
   */
 @DeveloperApi
-trait CleanedDataSource {
+trait SelfCleaningDataSource {
 
   @transient lazy private val pEventsDb = Storage.getPEvents()
   @transient lazy private val lEventsDb = Storage.getLEvents()
@@ -239,6 +239,7 @@ trait CleanedDataSource {
     }
 
     wipe(newEvents, eventsToRemove)
+
     result
   }
 
