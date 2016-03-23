@@ -23,12 +23,12 @@ import org.scalatest.Inside
 
 case class DataSourceParams(appName: String, eventWindow: Option[EventWindow], appId: Int) extends Params
 
-class SelfCleaningPDataSource() extends PDataSource[TrainingData,EmptyEvaluationInfo, Query, EmptyActualResult] with SelfCleaningDataSource {
+class SelfCleaningPDataSource(anAppName: String) extends PDataSource[TrainingData,EmptyEvaluationInfo, Query, EmptyActualResult] with SelfCleaningDataSource {
 
-  val (appId, channelId) = io.prediction.data.store.Common.appNameToId("cleanedTest", None)
+  val (appId, channelId) = io.prediction.data.store.Common.appNameToId(anAppName, None)
 
 
-  val dsp = DataSourceParams("cleanedTest", Some(EventWindow(Some("1825 days"), true, true)), appId = appId)
+  val dsp = DataSourceParams(anAppName, Some(EventWindow(Some("1825 days"), true, true)), appId = appId)
 
   override def appName = dsp.appName
   override def eventWindow = dsp.eventWindow
@@ -45,10 +45,9 @@ class SelfCleaningPDataSource() extends PDataSource[TrainingData,EmptyEvaluation
 
 class SelfCleaningDataSourceTest extends FunSuite with Inside with SharedSparkContext {
 
-  val source = new SelfCleaningPDataSource()
-
   //To run manually, requires app "cleanedTest" and test.json data imported to it
   ignore("Test event cleanup") {
+    val source = new SelfCleaningPDataSource("cleanedTest")
     val eventsBeforeCount = source.events(sc).count
     val itemEventsBeforeCount = source.itemEvents(sc).count
 
