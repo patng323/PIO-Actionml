@@ -165,11 +165,7 @@ trait SelfCleaningDataSource {
   ): Unit = {
     val (appId, channelId) = Common.appNameToId(appName, None)
   
-    newEvents.foreach(println(_))
-
     pEventsDb.write(newEvents, appId)(sc)
-
-    eventsToRemove.foreach(println(_))
   
     removeEvents(eventsToRemove.collect.toSet, appId)
   }
