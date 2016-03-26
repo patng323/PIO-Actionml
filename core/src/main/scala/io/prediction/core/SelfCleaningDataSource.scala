@@ -56,8 +56,7 @@ trait SelfCleaningDataSource {
     * @return RDD[Event] most recent PEvents.
     */
   @DeveloperApi
-  def getCleanedPEvents(sc: SparkContext): RDD[Event] = {
-    val pEvents = PEventStore.find(appName)(sc)
+  def getCleanedPEvents(pEvents: RDD[Event]): RDD[Event] = { 
 
     eventWindow
       .flatMap(_.duration)
@@ -76,9 +75,7 @@ trait SelfCleaningDataSource {
     * @return Iterator[Event] most recent LEvents.
     */
   @DeveloperApi
-  def getCleanedLEvents(): Iterable[Event] = {
-
-    val lEvents = LEventStore.find(appName)
+  def getCleanedLEvents(lEvents: Iterable[Event]): Iterable[Event] = { 
 
     eventWindow
       .flatMap(_.duration)
@@ -217,17 +214,19 @@ trait SelfCleaningDataSource {
     */
   @DeveloperApi
   def cleanPEvents(sc: SparkContext): RDD[Event] = {
-    val rdd = getCleanedPEvents(sc).sortBy(_.eventTime)
-    eventWindow match {
+   val pEvents = PEventStore.find(appName)(sc).sortBy(_.eventTime)
+
+   val rdd = eventWindow match {
       case Some(ew) =>
         var updated =
-          if (ew.compressProperties) compressPProperties(sc, rdd) else rdd
+          if (ew.compressProperties) compressPProperties(sc, pEvents) else pEvents
         
         val deduped = if (ew.removeDuplicates) removePDuplicates(sc,updated) else updated
         deduped
       case None =>
-        rdd
+        pEvents
     }
+  getCleanedPEvents(rdd)
   }
 
   /** :: DeveloperApi ::
@@ -256,16 +255,18 @@ trait SelfCleaningDataSource {
     */
   @DeveloperApi
   def cleanLEvents(): Iterable[Event] = {
-    val ls = getCleanedLEvents().toList.sortBy(_.eventTime)
-    eventWindow match {
+    val lEvents = LEventStore.find(appName).toList.sortBy(_.eventTime)
+ 
+    val events = eventWindow match {
       case Some(ew) =>
         var updated =
-          if (ew.compressProperties) compressLProperties(ls) else ls
+          if (ew.compressProperties) compressLProperties(lEvents) else lEvents
           val deduped = if (ew.removeDuplicates) removeLDuplicates(updated) else updated
         deduped
       case None =>
-        ls
+        lEvents
     }
+    getCleanedLEvents(events)
   }
 
 
